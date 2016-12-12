@@ -6,7 +6,8 @@
 		"gainItem": "take",
 		"loseItem": "drop",
 		"perceiveItems": "items",
-		"help": "help"
+		"help": "help",
+		"quit": "quit"
 	},
 	"settings":{
 		"title":"Carnival",
@@ -14,6 +15,7 @@
 		"prepend": ">> "
 	},
   "messages": {
+			"placeholder":"type a command, 'help' if you're stuck",
 			"helpText": "- look around\n- walk (to) [place]\n- pockets\n- items\n- take [item]\n- drop [item]",
 			"visibilityError" : "it's kinda dark... you can't really see.",
       "moveMessage": "you walk to the ",

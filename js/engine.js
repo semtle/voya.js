@@ -1,6 +1,26 @@
 //Made by, and copyright, @trevorsargent 2016
-
 //p rints a line of text to the screen
+function clear() {
+	$("#console").html("<div id='placeholder'></div>")
+}
+
+function setup(data) {
+	clear();
+	data.player.currentLocation = applyPlaceDefaults(data.places[data.player.settings.startingPlace], data.defaults)
+	printWelcome(data.messages.welcomeText);
+	$("#image")
+		.attr("src", data.settings["background-url"])
+	$("title")
+		.html(data.settings.title)
+	$("#logo")
+		.html(data.settings.title)
+		//on pressing enter after providing a command
+	$("#prepend")
+		.html(data.settings.prepend)
+	$("#command_line").attr("placeholder", data.messages.placeholder).val("").focus()
+	return data;
+}
+
 function println(line) {
 	if (line) {
 		arr = line.split('\n');
@@ -200,7 +220,14 @@ function applyPlaceDefaults(place, defaults) {
 
 // process the input from each command
 function processInput(input, data) {
-	let {settings, commands, player, places, messages, defaults} = data;
+	let {
+		settings,
+		commands,
+		player,
+		places,
+		messages,
+		defaults
+	} = data;
 
 	// store in inputHistory
 	if (input.length > 0) {
@@ -213,6 +240,8 @@ function processInput(input, data) {
 		println(messages.helpText)
 
 		//look around describe where you are
+	} else if (input.indexOf(commands.quit) > -1) {
+		location.reload();
 	} else if (input.indexOf(commands.observe) > -1) {
 		if (canSee(player)) {
 			println(description(player.currentLocation, places))
@@ -241,9 +270,9 @@ function processInput(input, data) {
 				} else {
 					println(place.messages.locked)
 				}
-			} else if(place === player.currentLocation){
+			} else if (place === player.currentLocation) {
 				println(messages.moveRedundancy + place.name)
-			}else {
+			} else {
 				println(messages.moveError)
 			}
 		} else {
@@ -293,36 +322,47 @@ function processInput(input, data) {
 			println(messages.commandInvalid)
 		}
 	}
-	Object.assign(data, {player,places})
+	Object.assign(data, {
+		player,
+		places
+	})
 	return data
 }
 
 $(document)
-	.ready(function () {
+	.ready(function() {
 
 		let data = {}
 		let inputHistory = new Array()
 		let numInputs = 0
 		let selectInput = 0
+		let fileExt = ".json"
+		let files = []
+		let playing = false
 
-		$.getJSON("roms/carnival.json", function (json) {
-			// console.log(json); // this will show the info it in firebug console
-			data = json
-			data.player.currentLocation = applyPlaceDefaults(data.places[data.player.settings.startingPlace], data.defaults)
-			printWelcome(data.messages.welcomeText);
-			$("#image")
-			.attr("src", data.settings["background-url"])
-			$("title")
-				.html(data.settings.title)
-			$("#logo")
-				.html(data.settings.title)
-				//on pressing enter after providing a command
-			$("#prepend")
-				.html(data.settings.prepend)
-		})
+		lineNum(9)
+		println("please enter the name of adventure to read, or type 'upload'")
+
+		$.ajax({
+			//This will retrieve the contents of the folder if the folder is configured as 'browsable'
+			url: './roms/',
+			success: function(data) {
+				//List all xml file names in the page
+				$(data).find('a:contains(' + fileExt + ')').each(function() {
+					let filename = this.href.replace(window.location, "").replace("http:///", "");
+					line()
+					files.push(filename.replace(".json", ""))
+				});
+
+				for (var i in files) {
+					line()
+					println("- " + files[i])
+				}
+			}
+		});
 
 		$("form")
-			.submit(function () {
+			.submit(function() {
 				let input = $('#command_line')
 					.val()
 				input = input.trim();
@@ -331,7 +371,37 @@ $(document)
 				numInputs += 1
 				selectInput = numInputs
 
-				data = processInput(input, data)
+				if (playing) {
+					data = processInput(input, data)
+				} else {
+					let path = ""
+					if (files.includes(input)) {
+						path = "roms/" + input + ".json"
+						$.getJSON(path, function(json) {
+							data = json
+							data = setup(data)
+						})
+					} else if (input.indexOf("upload") > -1) {
+						$("#fileInput").change(function() {
+							let fileUpload = document.getElementById("fileInput")
+							if (typeof(FileReader) != "undefined") {
+								var reader = new FileReader()
+								reader.onload = function(e) {
+
+									data = JSON.parse(e.target.result)
+									data = setup(data)
+								}
+								reader.readAsText(fileUpload.files[0])
+							} else {
+								alert("This browser does not support HTML5.")
+							}
+						})
+						$("#fileInput").trigger('click')
+
+					}
+					playing = true;
+
+				}
 
 				$("html, body")
 					.animate({
@@ -344,7 +414,7 @@ $(document)
 			})
 
 		$(document)
-			.on("keyup", function (e) {
+			.on("keyup", function(e) {
 				let code = e.which
 				if (code == 38) { //up
 					if (selectInput > 0) {
